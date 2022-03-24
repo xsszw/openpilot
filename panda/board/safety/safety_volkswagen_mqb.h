@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng.
+ * All Rights Reserved.
+ * Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng.
+ */
+
 const int VOLKSWAGEN_MQB_MAX_STEER = 300;               // 3.0 Nm (EPS side max of 3.0Nm with fault if violated)
 const int VOLKSWAGEN_MQB_MAX_RT_DELTA = 75;             // 4 max rate up * 50Hz send rate * 250000 RT interval / 1000000 = 50 ; 50 * 1.5 for safety pad = 75
 const uint32_t VOLKSWAGEN_MQB_RT_INTERVAL = 250000;     // 250ms between real time checks
@@ -120,7 +126,8 @@ static int volkswagen_mqb_rx_hook(CANPacket_t *to_push) {
     // Signal: TSK_06.TSK_Status
     if (addr == MSG_TSK_06) {
       int acc_status = (GET_BYTE(to_push, 3) & 0x7U);
-      int cruise_engaged = ((acc_status == 3) || (acc_status == 4) || (acc_status == 5)) ? 1 : 0;
+      //Pon Fulltime LKA
+      int cruise_engaged = ((acc_status == 2) || (acc_status == 3) || (acc_status == 4) || (acc_status == 5)) ? 1 : 0;
       if (cruise_engaged && !cruise_engaged_prev) {
         controls_allowed = 1;
       }
@@ -140,7 +147,8 @@ static int volkswagen_mqb_rx_hook(CANPacket_t *to_push) {
       brake_pressed = (GET_BYTE(to_push, 3) & 0x4U) >> 2;
     }
 
-    generic_rx_checks((addr == MSG_HCA_01));
+    //Pon Fulltime LKA
+    //generic_rx_checks((addr == MSG_HCA_01));
   }
   return valid;
 }

@@ -1,4 +1,11 @@
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
+
 from cereal import car
+from common.params import Params, put_nonblocking
 from selfdrive.car import apply_std_steer_torque_limits
 from selfdrive.car.volkswagen import volkswagencan
 from selfdrive.car.volkswagen.values import DBC_FILES, CANBUS, MQB_LDW_MESSAGES, BUTTON_STATES, CarControllerParams as P
@@ -21,7 +28,8 @@ class CarController():
 
     self.steer_rate_limited = False
 
-  def update(self, c, enabled, CS, frame, ext_bus, actuators, visual_alert, left_lane_visible, right_lane_visible, left_lane_depart, right_lane_depart):
+  #Pon Fulltime LKA
+  def update(self, c, enabled, availableFulltimeLka, CS, frame, ext_bus, actuators, visual_alert, left_lane_visible, right_lane_visible, left_lane_depart, right_lane_depart):
     """ Controls thread """
 
     can_sends = []
@@ -39,7 +47,17 @@ class CarController():
       # torque value. Do that anytime we happen to have 0 torque, or failing that,
       # when exceeding ~1/3 the 360 second timer.
 
-      if c.active and CS.out.vEgo > CS.CP.minSteerSpeed and not (CS.out.standstill or CS.out.steerError or CS.out.steerWarning):
+      #Pon Fulltime LKA (add condition acc available trigger LKA)
+      params = Params()
+      try:
+        IsVagFlkaLogEnabled = params.get_bool("IsVagFlkaLogEnabled")
+      except:
+        print("[BOP][carcontroller.py][update()][IsVagFlkaLogEnabled] Get param exception")
+        IsVagFlkaLogEnabled = False
+      if IsVagFlkaLogEnabled:
+        print("[BOP][carcontroller.py][update()][FLKA] availableFulltimeLka=", availableFulltimeLka)
+
+      if (c.active or availableFulltimeLka) and CS.out.vEgo > CS.CP.minSteerSpeed and not (CS.out.standstill or CS.out.steerError or CS.out.steerWarning):
         new_steer = int(round(actuators.steer * P.STEER_MAX))
         apply_steer = apply_std_steer_torque_limits(new_steer, self.apply_steer_last, CS.out.steeringTorque, P)
         self.steer_rate_limited = new_steer != apply_steer
@@ -72,12 +90,23 @@ class CarController():
     # **** HUD Controls ***************************************************** #
 
     if frame % P.LDW_STEP == 0:
+      #Pon Fulltime LKA (add condition acc available trigger LKA)
+      hudEnabled = True if (enabled or availableFulltimeLka) and not CS.out.standstill else False
+      try:
+        IsVagFlkaLogEnabled = params.get_bool("IsVagFlkaLogEnabled")
+      except:
+        print("[BOP][carcontroller.py][update()][IsVagFlkaLogEnabled] Get param exception")
+        IsVagFlkaLogEnabled = False
+      if IsVagFlkaLogEnabled:
+        print("[BOP][carcontroller.py][update()][FLKA] hudEnabled=", hudEnabled)
+
       if visual_alert in (VisualAlert.steerRequired, VisualAlert.ldw):
         hud_alert = MQB_LDW_MESSAGES["laneAssistTakeOverSilent"]
       else:
         hud_alert = MQB_LDW_MESSAGES["none"]
 
-      can_sends.append(volkswagencan.create_mqb_hud_control(self.packer_pt, CANBUS.pt, enabled,
+      #Pon Fulltime LKA
+      can_sends.append(volkswagencan.create_mqb_hud_control(self.packer_pt, CANBUS.pt, hudEnabled,
                                                             CS.out.steeringPressed, hud_alert, left_lane_visible,
                                                             right_lane_visible, CS.ldw_stock_values,
                                                             left_lane_depart, right_lane_depart))

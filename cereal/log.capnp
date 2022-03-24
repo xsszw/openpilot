@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
+
 using Cxx = import "./include/c++.capnp";
 $Cxx.namespace("cereal");
 
@@ -1432,6 +1438,45 @@ struct NavRoute {
   }
 }
 
+struct SpeedCamera {
+  vehicleLatitude @0 :Float32;
+  vehicleLongitude @1 :Float32;
+  vehicleSpeed @2 :Float32;
+  vehicleDirect @3 :SpeedDirect;
+  vihicleToCameraDirect @4 :SpeedDirect;
+  speedCameraDetected @5 :Bool;
+  speedCameraMapPosition @6 :SpeedCameraMapPosition;
+
+  enum SpeedDirect {
+    n @0; #northern
+    s @1; #southern
+    e @2; #eastern
+    w @3; #western
+    d @4; #double
+    ne @5; #N+E
+    nw @6; #N+W
+    se @7; #S+E
+    sw @8; #S+W
+    u @9; #unknown
+  }
+
+  struct SpeedCameraMapPosition {
+    latitude @0 :Float32;
+    longitude @1 :Float32;
+    direct @2 :SpeedDirect;
+    speedLimitation @3 :Float32;
+    roadType @4 :RoadType;
+    vehicleDistance @5 :Float32;
+    vehicleTrackAngle @6 :Float32;
+
+    enum RoadType {
+      road @0;
+      freeway @1;
+      highway @2;
+    }
+  }
+}
+
 struct Event {
   logMonoTime @0 :UInt64;  # nanoseconds
   valid @67 :Bool = true;
@@ -1494,6 +1539,9 @@ struct Event {
     navInstruction @82 :NavInstruction;
     navRoute @83 :NavRoute;
     navThumbnail @84: Thumbnail;
+
+    # speed camera
+    speedCamera @86 :SpeedCamera;
 
     # *********** debug ***********
     testJoystick @52 :Joystick;
