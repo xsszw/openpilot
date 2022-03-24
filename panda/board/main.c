@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng.
+ * All Rights Reserved.
+ * Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng.
+ */
+
 // ********************* Includes *********************
 #include "config.h"
 
@@ -202,6 +208,7 @@ void tick_handler(void) {
 
       }
 
+#if 0
       // exit controls allowed if unused by openpilot for a few seconds
       if (controls_allowed && !heartbeat_engaged) {
         heartbeat_engaged_mismatches += 1U;
@@ -211,6 +218,7 @@ void tick_handler(void) {
       } else {
         heartbeat_engaged_mismatches = 0U;
       }
+#endif
 
       if (!heartbeat_disabled) {
         // if the heartbeat has been gone for a while, go to SILENT safety mode and enter power save

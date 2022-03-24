@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng.
+ * All Rights Reserved.
+ * Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng.
+ */
+
 #pragma once
 
 #include <cstdlib>
@@ -69,5 +75,8 @@ public:
   }
   static void launch_tethering() {
     launch_activity("com.android.settings/.TetherSettings");
+  }
+  static void launch_settings() {
+    launch_activity("com.android.settings/.Settings");
   }
 };
