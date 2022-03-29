@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
+
 import importlib
 import math
 from collections import defaultdict, deque
@@ -205,8 +211,15 @@ def radard_thread(sm=None, pm=None, can_sock=None):
   rk = Ratekeeper(1.0 / CP.radarTimeStep, print_delay_threshold=None)
   RD = RadarD(CP.radarTimeStep, RI.delay)
 
+  # Pon Lead Car
+  params = Params()
+  try:
+    IsVagLeadCarEnabled = params.get_bool("IsVagLeadCarEnabled")
+  except:
+    print("[BOP][radard.py][radard_thread()][IsVagLeadCarEnabled] Get param exception")
+    IsVagLeadCarEnabled = False
   # TODO: always log leads once we can hide them conditionally
-  enable_lead = CP.openpilotLongitudinalControl or not CP.radarOffCan
+  enable_lead = CP.openpilotLongitudinalControl or not CP.radarOffCan or IsVagLeadCarEnabled
 
   while 1:
     can_strings = messaging.drain_sock_raw(can_sock, wait_for_one=True)

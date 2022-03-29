@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
+
 import os
 import math
 from numbers import Number
@@ -51,6 +57,7 @@ LaneChangeDirection = log.LateralPlan.LaneChangeDirection
 EventName = car.CarEvent.EventName
 ButtonEvent = car.CarState.ButtonEvent
 SafetyModel = car.CarParams.SafetyModel
+GearShifter = car.CarState.GearShifter
 
 IGNORED_SAFETY_MODES = [SafetyModel.silent, SafetyModel.noOutput]
 CSID_MAP = {"0": EventName.roadCameraError, "1": EventName.wideRoadCameraError, "2": EventName.driverCameraError}
@@ -321,7 +328,9 @@ class Controls:
       if not NOSENSOR:
         if not self.sm['liveLocationKalman'].gpsOK and (self.distance_traveled > 1000):
           # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
-          self.events.add(EventName.noGps)
+          #Pon Disable no gps alert
+          #self.events.add(EventName.noGps)
+          print("NO GPS")
       if not self.sm.all_alive(self.camera_packets):
         self.events.add(EventName.cameraMalfunction)
       if self.sm['modelV2'].frameDropPerc > 20:
@@ -609,6 +618,54 @@ class Controls:
     current_alert = self.AM.process_alerts(self.sm.frame, clear_event_types)
     if current_alert:
       hudControl.visualAlert = current_alert.visual_alert
+
+
+
+    #Pon Fulltime LKA
+    params = Params()
+    try:
+      IsVagFulltimeLkaEnabled = params.get_bool("IsVagFulltimeLkaEnabled")
+    except:
+      print("[BOP][controlsd.py][publish_logs()][IsVagFulltimeLkaEnabled] Get param exception")
+      IsVagFulltimeLkaEnabled = False
+    try:
+      IsVagFulltimeLkaEnableWithBlinker = params.get_bool("IsVagFulltimeLkaEnableWithBlinker")
+    except:
+      print("[BOP][controlsd.py][publish_logs()][IsVagFulltimeLkaEnableWithBlinker] Get param exception")
+      IsVagFulltimeLkaEnableWithBlinker = False
+    try:
+      IsVagFulltimeLkaEnableWithBrake = params.get_bool("IsVagFulltimeLkaEnableWithBrake")
+    except:
+      print("[BOP][controlsd.py][publish_logs()][IsVagFulltimeLkaEnableWithBrake] Get param exception")
+      IsVagFulltimeLkaEnableWithBrake = False
+
+    if CS.brakePressed:
+      if IsVagFulltimeLkaEnableWithBrake:
+        FulltimeLkaEnableWithBlinker = True
+      else:
+        FulltimeLkaEnableWithBlinker = False
+    else:
+      FulltimeLkaEnableWithBlinker = True
+
+    if bool(CS.leftBlinker or CS.rightBlinker):
+      if IsVagFulltimeLkaEnableWithBlinker:
+        FulltimeLkaEnableWithBrake = True
+      else:
+        FulltimeLkaEnableWithBrake = False
+    else:
+      FulltimeLkaEnableWithBrake = True
+
+    CC.availableFulltimeLka = bool(CS.cruiseState.available \
+                              and bool(self.sm['liveCalibration'].calStatus == Calibration.CALIBRATED) \
+                              and bool(bool(IsVagFulltimeLkaEnabled) and bool(FulltimeLkaEnableWithBlinker) and bool(FulltimeLkaEnableWithBrake)) \
+                              and bool(bool(CS.gearShifter==GearShifter.drive) or bool(CS.gearShifter==GearShifter.sport) or bool(CS.gearShifter==GearShifter.manumatic) or bool(CS.gearShifter==GearShifter.eco)))
+    try:
+      IsVagFlkaLogEnabled = params.get_bool("IsVagFlkaLogEnabled")
+    except:
+      print("[BOP][controlsd.py][publish_logs()][IsVagFlkaLogEnabled] Get param exception")
+      IsVagFlkaLogEnabled = False
+    if IsVagFlkaLogEnabled:
+      print("[BOP][controlsd.py][publish_logs()][FLKA] CC.availableFulltimeLka=", CC.availableFulltimeLka)
 
     if not self.read_only and self.initialized:
       # send car controls over can

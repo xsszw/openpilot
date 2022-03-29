@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
+
 import os
 
 from selfdrive.hardware import EON, TICI, PC
@@ -34,8 +40,10 @@ procs = [
   PythonProcess("thermald", "selfdrive.thermald.thermald", persistent=True),
   PythonProcess("timezoned", "selfdrive.timezoned", enabled=TICI, persistent=True),
   PythonProcess("tombstoned", "selfdrive.tombstoned", enabled=not PC, persistent=True),
-  PythonProcess("updated", "selfdrive.updated", enabled=not PC, persistent=True),
-  PythonProcess("uploader", "selfdrive.loggerd.uploader", persistent=True),
+  #Pon Disable updated process
+  #PythonProcess("updated", "selfdrive.updated", enabled=not PC, persistent=True),
+  #Pon Disable uploader process
+  #PythonProcess("uploader", "selfdrive.loggerd.uploader", persistent=True),
   PythonProcess("statsd", "selfdrive.statsd", persistent=True),
 
   # EON only

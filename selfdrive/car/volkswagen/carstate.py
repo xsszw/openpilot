@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
+
 import numpy as np
 from cereal import car
 from selfdrive.config import Conversions as CV
@@ -29,7 +35,8 @@ class CarState(CarStateBase):
 
     ret.vEgoRaw = float(np.mean([ret.wheelSpeeds.fl, ret.wheelSpeeds.fr, ret.wheelSpeeds.rl, ret.wheelSpeeds.rr]))
     ret.vEgo, ret.aEgo = self.update_speed_kf(ret.vEgoRaw)
-    ret.standstill = ret.vEgo < 0.1
+    #Pon Fix stop and go acc resume +1
+    ret.standstill = bool(pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"]) and ret.vEgo < 0.01
 
     # Update steering angle, rate, yaw rate, and driver input torque. VW send
     # the sign/direction in a separate signal so they must be recombined.
@@ -50,6 +57,7 @@ class CarState(CarStateBase):
     ret.brake = pt_cp.vl["ESP_05"]["ESP_Bremsdruck"] / 250.0  # FIXME: this is pressure in Bar, not sure what OP expects
     ret.brakePressed = bool(pt_cp.vl["ESP_05"]["ESP_Fahrer_bremst"])
     self.esp_hold_confirmation = pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"]
+    ret.brakeLights = bool(pt_cp.vl["ESP_05"]["ESP_Status_Bremsdruck"])
 
     # Update gear and/or clutch position data.
     if trans_type == TransmissionType.automatic:
@@ -81,8 +89,35 @@ class CarState(CarStateBase):
     # Consume blind-spot monitoring info/warning LED states, if available.
     # Infostufe: BSM LED on, Warnung: BSM LED flashing
     if self.CP.enableBsm:
-      ret.leftBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_li"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_li"])
-      ret.rightBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_re"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_re"])
+      ret.leftBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_li"])
+      ret.rightBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_re"])
+      ret.leftBlindspotWarning = bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_li"])
+      ret.rightBlindspotWarning = bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_re"])
+
+    #VAG ACC
+    ret.vagAcc.accWunschgeschw = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw"]
+    ret.vagAcc.accAbstandsindex = ext_cp.vl["ACC_02"]["ACC_Abstandsindex"]
+    ret.vagAcc.accDistanceToStop = bool(ext_cp.vl["ACC_07"]["ACC_Distance_to_Stop"])
+    ret.vagAcc.accHoldRequest = bool(ext_cp.vl["ACC_07"]["ACC_Hold_Request"])
+    ret.vagAcc.accBoostRequest = bool(ext_cp.vl["ACC_07"]["ACC_Boost_Request"])
+    ret.vagAcc.accFreewheelRequest = bool(ext_cp.vl["ACC_07"]["ACC_Freewheel_Request"])
+    ret.vagAcc.accHoldRelease = bool(ext_cp.vl["ACC_07"]["ACC_Hold_Release"])
+
+    #VAG Traffic sign recognition
+    #ret.vagTsr.vzeAnzeigemodus = int(ext_cp.vl["VZE_01"]["VZE_Anzeigemodus"])
+    #ret.vagTsr.vzeHinweistext = int(ext_cp.vl["VZE_01"]["VZE_Hinweistext"])
+    #ret.vagTsr.vzeStatuszaehler1 = int(ext_cp.vl["VZE_01"]["VZE_Statuszaehler_1"])
+    #ret.vagTsr.vzeStatuszaehler2 = int(ext_cp.vl["VZE_01"]["VZE_Statuszaehler_2"])
+    #ret.vagTsr.vzeStatuszaehler3 = int(ext_cp.vl["VZE_01"]["VZE_Statuszaehler_3"])
+    #ret.vagTsr.vzeVerkehrszeichen1 = int(ext_cp.vl["VZE_01"]["VZE_Verkehrszeichen_1"])
+    #ret.vagTsr.vzeVerkehrszeichen2 = int(ext_cp.vl["VZE_01"]["VZE_Verkehrszeichen_2"])
+    #ret.vagTsr.vzeVerkehrszeichen3 = int(ext_cp.vl["VZE_01"]["VZE_Verkehrszeichen_3"])
+    #ret.vagTsr.vzeWarnungVerkehrszeichen1 = bool(ext_cp.vl["VZE_01"]["VZE_Warnung_Verkehrszeichen_1"])
+    #ret.vagTsr.vzeWarnungVerkehrszeichen2 = bool(ext_cp.vl["VZE_01"]["VZE_Warnung_Verkehrszeichen_2"])
+    #ret.vagTsr.vzeWarnungVerkehrszeichen3 = bool(ext_cp.vl["VZE_01"]["VZE_Warnung_Verkehrszeichen_3"])
+    #ret.vagTsr.vzeZusatzschild1 = int(ext_cp.vl["VZE_01"]["VZE_Zusatzschild_1"])
+    #ret.vagTsr.vzeZusatzschild2 = int(ext_cp.vl["VZE_01"]["VZE_Zusatzschild_2"])
+    #ret.vagTsr.vzeZusatzschild3 = int(ext_cp.vl["VZE_01"]["VZE_Zusatzschild_3"])
 
     # Consume factory LDW data relevant for factory SWA (Lane Change Assist)
     # and capture it for forwarding to the blind spot radar controller
@@ -170,6 +205,7 @@ class CarState(CarStateBase):
       ("AB_Gurtschloss_BF", "Airbag_02"),        # Seatbelt status, passenger
       ("ESP_Fahrer_bremst", "ESP_05"),           # Brake pedal pressed
       ("ESP_Bremsdruck", "ESP_05"),              # Brake pressure applied
+      ("ESP_Status_Bremsdruck", "ESP_05"),       # Brakes applied
       ("MO_Fahrpedalrohwert_01", "Motor_20"),    # Accelerator pedal value
       ("EPS_Lenkmoment", "LH_EPS_03"),           # Absolute driver torque input
       ("EPS_VZ_Lenkmoment", "LH_EPS_03"),        # Driver torque input sign
@@ -262,20 +298,42 @@ class CarState(CarStateBase):
 class MqbExtraSignals:
   # Additional signal and message lists for optional or bus-portable controllers
   fwd_radar_signals = [
-    ("ACC_Wunschgeschw", "ACC_02"),              # ACC set speed
-    ("AWV2_Freigabe", "ACC_10"),                 # FCW brake jerk release
-    ("ANB_Teilbremsung_Freigabe", "ACC_10"),     # AEB partial braking release
-    ("ANB_Zielbremsung_Freigabe", "ACC_10"),     # AEB target braking release
+    ("ACC_Wunschgeschw", "ACC_02"),                 # ACC set speed
+    ("ACC_Abstandsindex", "ACC_02"),
+    ("ACC_Distance_to_Stop", "ACC_07"),
+    ("ACC_Hold_Request", "ACC_07"),
+    ("ACC_Boost_Request", "ACC_07"),
+    ("ACC_Freewheel_Request", "ACC_07"),
+    ("ACC_Hold_Release", "ACC_07"),
+    ("AWV2_Freigabe", "ACC_10"),                    # FCW brake jerk release
+    ("ANB_Teilbremsung_Freigabe", "ACC_10"),        # AEB partial braking release
+    ("ANB_Zielbremsung_Freigabe", "ACC_10"),        # AEB target braking release
+    #("VZE_Anzeigemodus", "VZE_01"),
+    #("VZE_Hinweistext", "VZE_01"),
+    #("VZE_Statuszaehler_1", "VZE_01"),
+    #("VZE_Statuszaehler_2", "VZE_01"),
+    #("VZE_Statuszaehler_3", "VZE_01"),
+    #("VZE_Verkehrszeichen_1", "VZE_01"),
+    #("VZE_Verkehrszeichen_2", "VZE_01"),
+    #("VZE_Verkehrszeichen_3", "VZE_01"),
+    #("VZE_Warnung_Verkehrszeichen_1", "VZE_01"),
+    #("VZE_Warnung_Verkehrszeichen_2", "VZE_01"),
+    #("VZE_Warnung_Verkehrszeichen_3", "VZE_01"),
+    #("VZE_Zusatzschild_1", "VZE_01"),
+    #("VZE_Zusatzschild_2", "VZE_01"),
+    #("VZE_Zusatzschild_3", "VZE_01"),
   ]
   fwd_radar_checks = [
     ("ACC_10", 50),                                 # From J428 ACC radar control module
     ("ACC_02", 17),                                 # From J428 ACC radar control module
+    ("ACC_07", 17),
+    #("VZE_01", 10)
   ]
   bsm_radar_signals = [
-    ("SWA_Infostufe_SWA_li", "SWA_01"),          # Blind spot object info, left
-    ("SWA_Warnung_SWA_li", "SWA_01"),            # Blind spot object warning, left
-    ("SWA_Infostufe_SWA_re", "SWA_01"),          # Blind spot object info, right
-    ("SWA_Warnung_SWA_re", "SWA_01"),            # Blind spot object warning, right
+    ("SWA_Infostufe_SWA_li", "SWA_01"),             # Blind spot object info, left
+    ("SWA_Warnung_SWA_li", "SWA_01"),               # Blind spot object warning, left
+    ("SWA_Infostufe_SWA_re", "SWA_01"),             # Blind spot object info, right
+    ("SWA_Warnung_SWA_re", "SWA_01"),               # Blind spot object warning, right
   ]
   bsm_radar_checks = [
     ("SWA_01", 20),                                 # From J1086 Lane Change Assist

@@ -1,4 +1,11 @@
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
+
 from cereal import car
+from common.params import Params, put_nonblocking
 from selfdrive.car.volkswagen.values import CAR, BUTTON_STATES, CANBUS, NetworkLocation, TransmissionType, GearShifter
 from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness, gen_empty_fingerprint, get_safety_config
 from selfdrive.car.interfaces import CarInterfaceBase
@@ -210,12 +217,21 @@ class CarInterface(CarInterfaceBase):
     return self.CS.out
 
   def apply(self, c):
+    #Pon Fulltime LKA
+    params = Params()
     hud_control = c.hudControl
-    ret = self.CC.update(c, c.enabled, self.CS, self.frame, self.ext_bus, c.actuators,
+    ret = self.CC.update(c, c.enabled, c.availableFulltimeLka, self.CS, self.frame, self.ext_bus, c.actuators,
                          hud_control.visualAlert,
                          hud_control.leftLaneVisible,
                          hud_control.rightLaneVisible,
                          hud_control.leftLaneDepart,
                          hud_control.rightLaneDepart)
+    try:
+      IsVagFlkaLogEnabled = params.get_bool("IsVagFlkaLogEnabled")
+    except:
+      print("[BOP][interface.py][apply()][IsVagFlkaLogEnabled] Get param exception")
+      IsVagFlkaLogEnabled = False
+    if IsVagFlkaLogEnabled:
+      print("[BOP][interface.py][apply()][FLKA] c.availableFulltimeLka=", c.availableFulltimeLka)
     self.frame += 1
     return ret
