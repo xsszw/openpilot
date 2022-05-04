@@ -1,4 +1,9 @@
 #!/usr/bin/bash
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
 
 if [ -z "$BASEDIR" ]; then
   BASEDIR="/data/openpilot"
@@ -186,7 +191,22 @@ function launch {
 
   # start manager
   cd selfdrive/manager
+  #Pon Force connect to wifi ap
+  wpa_cli -iwlan0 -g@android:wpa_wlan0 IFNAME=wlan0 reassociate
+  #Pon Dump log to file, add rebuild option
+  if [ -d "/data/media/0/build" ]; then
+    if [ -d "/data/media/0/log" ]; then
+      ./build.py > /data/media/0/log/build_log_$(date +"%Y%m%d_%H%M%S").txt && ./manager.py > /data/media/0/log/launch_log_$(date +"%Y%m%d_%H%M%S").txt
+    else
   ./build.py && ./manager.py
+    fi
+  else
+    if [ -d "/data/media/0/log" ]; then
+      ./manager.py > /data/media/0/log/launch_log_$(date +"%Y%m%d_%H%M%S").txt
+    else
+      ./manager.py
+    fi
+  fi
 
   # if broken, keep on screen error
   while true; do sleep 1; done

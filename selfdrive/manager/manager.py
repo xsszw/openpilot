@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+#
+# Copyright (c) 2020-2022 bluetulippon@gmail.com Chad_Peng(Pon).
+# All Rights Reserved.
+# Confidential and Proprietary - bluetulippon@gmail.com Chad_Peng(Pon).
+#
+
 import datetime
 import os
 import signal
@@ -40,6 +46,60 @@ def manager_init() -> None:
     ("CompletedTrainingVersion", "0"),
     ("HasAcceptedTerms", "0"),
     ("OpenpilotEnabledToggle", "1"),
+    #Pon Add parameter default value
+    #----- Setting -----
+    ("IsVagManualSoundVolumeEnable", "0"),
+    ("VagSoundVolume", "10"),
+    ("IsVagManualOsdBacklightEnable", "0"),
+    ("VagOsdBacklight", "10"),
+    ("IsVagInfoBoxEnabled", "1"),
+    ("IsVagBlinkerEnabled", "1"),
+    ("IsVagBrakeLightEnabled", "1"),
+    ("IsVagLeadCarEnabled", "1"),
+    #----- Feature -----
+    ("IsVagBlindspotEnabled", "1"),
+    ("IsVagBlindspotInfoVibratorEnabled", "1"),
+    ("IsVagBlindspotWarningSoundEnabled", "1"),
+    ("IsVagBlindspotWarningVibratorEnabled", "1"),
+    ("IsVagBlindspotVibratorWithFlka", "0"),
+    ("IsVagFulltimeLkaEnabled", "1"),
+    ("IsVagFulltimeLkaEnableWithBlinker", "1"),
+    ("IsVagFulltimeLkaEnableWithBrake", "1"),
+    ("IsVagLeadCarGoingRemindEnabled", "1"),
+    ("IsVagLeadCarGoingRemindSoundEnabled", "1"),
+    ("IsVagNoLeadCarEnabled", "1"),
+    ("IsVagNoLeadCarWarningSoundEnabled", "1"),
+    ("IsVagVisionPresafeEnabled", "1"),
+    ("IsVagVisionPresafeWarningSoundEnabled", "1"),
+    ("IsVagVisionPresafeWarningInterposeEnabled", "1"),
+    ("IsVagSpeedCameraEnabled", "1"),
+    ("IsVagSpeedLimitSoundEnabled", "1"),
+    ("IsVagSaccEnabled", "1"),
+    #----- Test -----
+    ("IsVagDebugOsdTestTextEnabled", "0"),
+    ("IsVagDebugItem1Enabled", "0"),
+    ("IsVagDebugItem2Enabled", "0"),
+    ("IsVagDebugItem3Enabled", "0"),
+    ("IsVagDebugItem4Enabled", "0"),
+    ("IsVagDebugItem5Enabled", "0"),
+    #----- Gerenal -----
+    ("IsVagDevelopModeEnabled", "0"),
+    ("IsVagDevelopOnRoadUi", "0"),
+    ("IsVagRunningProcessLogEnabled", "1"),
+    #----- OSD -----
+    ("IsVagDebugBlinkerTest", "0"),
+    ("IsVagDebugBlindspotInfoTest", "0"),
+    ("IsVagDebugBlindspotWarningTest", "0"),
+    ("IsVagDebugBrakeLightTest", "0"),
+    ("IsVagDebugLeadCarGoingRemindTest", "0"),
+    ("IsVagDebugNoLeadCarWarningTest", "0"),
+    ("IsVagDebugVisionPresafeTest", "0"),
+    #----- Log -----
+    ("IsVagFlkaLogEnabled", "0"),
+    ("IsVagSaccLogEnabled", "0"),
+    ("IsVagSaccSpeedCamTrackEnabled", "0"),
+    ("IsVagSaccVehicleTrackEnabled", "0"),
+    #("VagAutoshutdownMinutes", "5"),
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
@@ -150,7 +210,14 @@ def manager_thread() -> None:
 
     running = ' '.join("%s%s\u001b[0m" % ("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)
                        for p in managed_processes.values() if p.proc)
-    print(running)
+    try:
+      IsVagRunningProcessLogEnabled = params.get_bool("IsVagRunningProcessLogEnabled")
+    except:
+      print("[BOP][manager.py][manager_thread()][IsVagRunningProcessLogEnabled] Get param exception")
+      IsVagRunningProcessLogEnabled = False
+    if IsVagRunningProcessLogEnabled:
+      print(running)
+
     cloudlog.debug(running)
 
     # send managerState
