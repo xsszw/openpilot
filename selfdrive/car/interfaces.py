@@ -33,7 +33,7 @@ class CarInterfaceBase(ABC):
   def __init__(self, CP, CarController, CarState):
     self.CP = CP
     self.VM = VehicleModel(CP)
-
+    self.disengage_on_gas = False
     self.frame = 0
     self.steering_unpressed = 0
     self.low_speed_alert = False
@@ -162,7 +162,8 @@ class CarInterfaceBase(ABC):
 
     # Disable on rising edge of gas or brake. Also disable on brake when speed > 0.
     #Pon ACC allow gas pedal
-    if (cs_out.brakePressed and (not self.CS.out.brakePressed or not cs_out.standstill)):
+    if (self.disengage_on_gas and cs_out.gasPressed and not self.CS.out.gasPressed) or \
+       (cs_out.brakePressed and (not self.CS.out.brakePressed or not cs_out.standstill)):
       events.add(EventName.pedalPressed)
 
     # we engage when pcm is active (rising edge)
